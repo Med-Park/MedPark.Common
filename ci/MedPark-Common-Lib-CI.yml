@@ -14,7 +14,7 @@ pool:
 variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  project: 'src/MedPark.Common/MedPark.Common.csproj'
+  project: 'src/MedPark.Common.csproj'
   packageVersion: 0
 
 steps:
