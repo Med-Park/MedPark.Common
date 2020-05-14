@@ -23,6 +23,12 @@ namespace MedPark.Common
             await _context.SaveChangesAsync();
         }
 
+        public async Task AddAllAsync(IEnumerable<TEntity> entities)
+        {
+            _context.Set<TEntity>().AddRange(entities);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<IEnumerable<TEntity>> BrowseAsync(Expression<Func<TEntity, bool>> predicate)
         {
             return await _context.Set<TEntity>().Where(predicate).ToListAsync();

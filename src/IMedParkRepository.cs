@@ -14,6 +14,7 @@ namespace MedPark.Common
         Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate);
         Task<IEnumerable<TEntity>> BrowseAsync(Expression<Func<TEntity, bool>> predicate);
         Task AddAsync(TEntity entity);
+        Task AddAllAsync(IEnumerable<TEntity> entity);
         Task UpdateAsync(TEntity entity);
         Task DeleteAsync(Guid id);
         Task<bool> ExistsAsync(Expression<Func<TEntity, bool>> predicate);
