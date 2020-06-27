@@ -138,5 +138,10 @@ namespace MedPark.Common
 
             return days;
         }
+
+        public static bool IsAddressSecure(this string address)
+        {
+            return (address.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? true : false);
+        }
     }
 }
