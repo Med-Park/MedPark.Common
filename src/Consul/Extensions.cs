@@ -1,7 +1,9 @@
 ﻿using Consul;
+using MedPark.Common.Types;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -19,6 +21,12 @@ namespace MedPark.Common.Consul
                 configuration = serviceProvider.GetService<IConfiguration>();
             }
             ConsulOptions consulConfigOptions = configuration.GetOptions<ConsulOptions>("Consul");
+
+            serviceCollection.Configure<ConsulOptions>(configuration.GetSection("Consul"));
+            serviceCollection.AddTransient<IConsulServices, ConsulServices>();
+            serviceCollection.AddTransient<ConsulServiceDiscoveryMessageHandler>();
+            serviceCollection.AddHttpClient<IConsulHttpClient, ConsulHttpClient>()
+                .AddHttpMessageHandler<ConsulServiceDiscoveryMessageHandler>();
 
             return serviceCollection.AddSingleton<IConsulClient>(c => new ConsulClient(cfg =>
             {
@@ -41,32 +49,43 @@ namespace MedPark.Common.Consul
                 if (!config.Enabled)
                     return String.Empty;
 
-                string serviceName = $"{appOptions.Name}";
                 Guid serviceId = Guid.NewGuid();
-                string consulServiceID = $"{serviceName}:{serviceId}";
+                string consulServiceID = $"{config.Service}:{serviceId}";
 
 
                 var client = scope.ServiceProvider.GetService<IConsulClient>();
 
                 var consulServiceRistration = new AgentServiceRegistration
                 {
-                    Name = serviceName,
+                    Name = config.Service,
                     ID = consulServiceID,
-                    Address = config.Host,
+                    Address = config.Address,
                     Port = config.Port,
                     //TODO : Add Tags Tags = fabioOptions.Value.Enabled ? GetFabioTags(serviceName, fabioOptions.Value.Service) : null
                 };
 
                 if (config.PingEnabled)
                 {
-                    var check = new AgentServiceCheck
-                    {
-                        Interval = TimeSpan.FromSeconds(5),
-                        DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(10),
-                        HTTP = config.Host
-                    };
+                    var healthService = scope.ServiceProvider.GetService<HealthCheckService>();
 
-                    consulServiceRistration.Checks = new[] { check };
+                    if (healthService != null)
+                    {
+                        var scheme = config.Address.StartsWith("http", StringComparison.InvariantCultureIgnoreCase)
+                       ? string.Empty
+                       : "http://";
+                        var check = new AgentServiceCheck
+                        {
+                            Interval = TimeSpan.FromSeconds(5),
+                            DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(10),
+                            HTTP = $"{scheme}{config.Address}{(config.Port > 0 ? $":{config.Port}" : string.Empty)}/health"
+                        };
+
+                        consulServiceRistration.Checks = new[] { check };
+                    }
+                    else
+                    {
+                        throw new MedParkException("consul_check_initialization_exception", "Please ensure that Healthchecks has been added before adding checks to Consul.");
+                    }
                 }
 
                 client.Agent.ServiceRegister(consulServiceRistration);
