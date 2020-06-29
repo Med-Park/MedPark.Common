@@ -52,7 +52,7 @@ steps:
     maxIncrement: 10
     packageName: "MedPark.Common"
     pipelineVariable: 'packageVersion'
-  enabled: false
+  enabled: true
 
 - task: NuGetCommand@2
   displayName: 'Package Library to publish to NuGet'
@@ -61,18 +61,16 @@ steps:
     packagesToPack: '$(project)'
     versioningScheme: byEnvVar
     versionEnvVar: 'packageVersion'
-  enabled: false
+  enabled: true
 
 - task: DotNetCoreCLI@2
   displayName: Publish Library to NuGet feed (Only if the build was triggered by master branch)
   inputs:
-    command: custom
-    custom: nuget
-    arguments: >
-      push $(Build.ArtifactStagingDirectory)/MedPark.Common.$(packageVersion).nupkg
-      -s $(NugetFeedUrl)
-      -k $(NugetMedParkAPIKey)
-  enabled: false
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '23071676-fbc6-42f3-b0eb-9d6aee64f21c'
+  enabled: true
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish artifcats'
